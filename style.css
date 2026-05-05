@@ -112,6 +112,12 @@ body.page-sticky-footer .page-main-content {
   color: #121212;
 }
 
+.social-link-btn:hover {
+  background: #b08d57;
+  border-color: #b08d57;
+  color: #ffffff;
+}
+
 .toast {
   position: fixed;
   bottom: -100px;
@@ -529,6 +535,10 @@ html {
 }
 .menu-overlay.active {
   display: block;
+}
+
+.nav-menu .mobile-booking-btn {
+  display: none;
 }
 
 @media (max-width: 768px) {
