@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const bookingForm = document.getElementById('bookingForm');
     const checkIn = document.getElementById('checkIn');
     const checkOut = document.getElementById('checkOut');
@@ -18,6 +18,112 @@ document.addEventListener('DOMContentLoaded', () => {
     const toast = document.getElementById('toast');
 
     let appliedDiscountPercent = 0;
+
+    function getAmenityIcons(amenitiesText) {
+        const iconMap = [
+            { keywords: ['Wi-Fi', 'wifi'], icon: 'fa-wifi' },
+            { keywords: ['ТВ', 'Smart TV'], icon: 'fa-tv' },
+            { keywords: ['Кондиционер'], icon: 'fa-snowflake' },
+            { keywords: ['Кофе'], icon: 'fa-coffee' },
+            { keywords: ['Рабочая'], icon: 'fa-briefcase' },
+            { keywords: ['комнат'], icon: 'fa-users' },
+            { keywords: ['Кухня'], icon: 'fa-utensils' },
+            { keywords: ['Ванна', 'Джакузи', 'Душ'], icon: 'fa-bath' },
+            { keywords: ['Suite'], icon: 'fa-couch' },
+            { keywords: ['Панорам', 'вид'], icon: 'fa-city' },
+            { keywords: ['Акустика', 'Marshall'], icon: 'fa-music' },
+            { keywords: ['Терраса'], icon: 'fa-glass-martini-alt' },
+            { keywords: ['VIP', 'Royal', 'Lux'], icon: 'fa-crown' },
+            { keywords: ['консьерж', 'сервис'], icon: 'fa-concierge-bell' },
+            { keywords: ['Сейф'], icon: 'fa-lock' }
+        ];
+
+        const icons = new Set();
+        const lowerText = amenitiesText.toLowerCase();
+
+        iconMap.forEach(({ keywords, icon }) => {
+            if (keywords.some(keyword => lowerText.includes(keyword.toLowerCase()))) {
+                icons.add(icon);
+            }
+        });
+
+        if (icons.size === 0) {
+            icons.add('fa-check');
+        }
+
+        return Array.from(icons).map(icon => `<i class="fas ${icon}"></i>`).join(' ');
+    }
+
+    function renderRoomsGrid(rooms) {
+        const grid = document.querySelector('.grid');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+
+        rooms.forEach(room => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <img src="img/${room.id}.png" alt="${room.name}">
+                <div class="content">
+                    <h3>${room.name}</h3>
+                    <div class="amenities" style="color: #b08d57; font-size: 13px; margin: 10px 0;">
+                        ${getAmenityIcons(room.amenities)}
+                    </div>
+                    <p>${room.amenities}</p>
+                    <span style="display:block; margin: 15px 0; font-weight: 700;">${room.price}</span>
+                    <a href="booking.html" class="btn btn-outline">Выбрать</a>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function renderRoomSelect(rooms) {
+        const select = document.getElementById('roomType');
+        if (!select) return;
+
+        select.innerHTML = '';
+
+        rooms.forEach(room => {
+            const option = document.createElement('option');
+            option.value = room.priceValue;
+            option.textContent = `${room.name} — ${room.price}`;
+            select.appendChild(option);
+        });
+    }
+
+    async function loadHotelData() {
+        try {
+            const response = await fetch('data.xml');
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+            const roomNodes = xmlDoc.querySelectorAll('room');
+
+            const rooms = Array.from(roomNodes).map(roomNode => {
+                const priceText = roomNode.querySelector('price')?.textContent.trim() || '0 BYN';
+
+                return {
+                    id: roomNode.getAttribute('id'),
+                    name: roomNode.querySelector('name')?.textContent.trim() || '',
+                    price: priceText,
+                    priceValue: parseInt(priceText, 10) || 0,
+                    amenities: roomNode.querySelector('amenities')?.textContent.trim() || ''
+                };
+            });
+
+            renderRoomsGrid(rooms);
+            renderRoomSelect(rooms);
+
+            return rooms;
+        } catch (error) {
+            console.error('Не удалось загрузить data.xml:', error);
+            return [];
+        }
+    }
+
+    await loadHotelData();
 
     function validateDates() {
         if (!checkIn || !checkOut) return true;
@@ -155,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ========== АКТИВНЫЕ ССЫЛКИ ==========
     const currentUrl = window.location.pathname.split("/").pop() || 'index.html';
     const navLinks = document.querySelectorAll('.nav-menu a');
     
@@ -166,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ========== БУРГЕР-МЕНЮ ==========
     let burger = document.querySelector('.burger');
     
     if (!burger) {
